@@ -11,7 +11,13 @@ on:
     secrets:
       AWS_REGION:
         required: true
-    
+      AWS_ACCESS_KEY_ID:
+        required: true
+      AWS_SECRET_ACCESS_KEY:
+        required: true
+      GITHUB_TOKEN:
+        required: true
+
 env:
   TF_STATE_BUCKET_NAME: "terraform-ashishjullia"
   TF_STATE_BUCKET_KEY: "${{ github.event.repository.name }}/terraform.tfstate"
