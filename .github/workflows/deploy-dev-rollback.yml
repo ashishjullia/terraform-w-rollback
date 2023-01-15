@@ -26,7 +26,6 @@ env:
   TF_STATE_DYNAMODB_TABLE_REGION: "us-east-1"
   WORKING_CODE_REPO: ${{ github.repository }}
   WORKING_CODE_REPO_WITHOUT_OWNER: ${{ github.event.repository.name }}
-  GITHUB_RUN_ID: ${{ github.run_id }}
 
 jobs:
   rollback:
@@ -72,7 +71,7 @@ jobs:
             let allArtifacts = await github.rest.actions.listWorkflowRunArtifacts({
                owner: context.repo.owner,
                repo: context.repo.repo,
-               run_id: $GITHUB_RUN_ID,
+               run_id: process.env.GITHUB_RUN_ID,
             });
             let matchArtifact = allArtifacts.data.artifacts.filter((artifact) => {
               return artifact.name == "working-code"
@@ -85,9 +84,9 @@ jobs:
             });
             let fs = require('fs');
             fs.writeFileSync(`${process.env.GITHUB_WORKSPACE}/working-code.zip`, Buffer.from(download.data));
-
         env:
           GITHUB_TOKEN: ${{ secrets.PASSED_GITHUB_TOKEN }}
+          GITHUB_RUN_ID: ${{ github.run_id }}
 
       - name: 'Unzip artifact'
         run: unzip working-code.zip -d working-code
