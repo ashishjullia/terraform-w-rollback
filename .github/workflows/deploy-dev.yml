@@ -263,7 +263,8 @@ jobs:
         id: destroytf
         if: steps.apply.outcome == 'failure' && env.RELEASE_COUNT == 0
         run: |
-          echo "destroy-outcome=1" >> $GITHUB_OUTPUT
+          # echo "destroy-outcome=1" >> $GITHUB_OUTPUT
+          echo "destroy-outcome=1" >> $GITHUB_ENV
           terraform destroy -auto-approve
 
       - name: If apply successful, create a release
@@ -286,7 +287,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-################################################################ prepare-rollback ############################################################################
+################################################################ prepare-rollback ###########################################################################
 
   # prepare-rollback:
   #   needs: deploy-to-dev
