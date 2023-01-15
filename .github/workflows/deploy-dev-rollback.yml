@@ -2,10 +2,12 @@ name: Deploy Dev Rollback
 
 # on:
   # workflow_dispatch:
+# on:
+#   workflow_run:
+#     workflows: [Prepare Deploy Dev Rollback]
+#     types: [completed]
 on:
-  workflow_run:
-    workflows: [Prepare Deploy Dev Rollback]
-    types: [completed]
+  workflow_call:
     
 env:
   TF_STATE_BUCKET_NAME: "terraform-ashishjullia"
