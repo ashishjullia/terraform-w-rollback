@@ -68,7 +68,10 @@ jobs:
         uses: actions/github-script@v6
         with:
           script: |
-            const { GITHUB_RUN_ID } = process.env
+            const { GITHUB_RUN_ID } = process.env.GITHUB_RUN_ID
+            console.log(GITHUB_RUN_ID)
+            console.log(context)
+            console.log(github.context)
             let allArtifacts = await github.rest.actions.listWorkflowRunArtifacts({
                owner: context.repo.owner,
                repo: context.repo.repo,
