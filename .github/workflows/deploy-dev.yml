@@ -90,7 +90,7 @@ jobs:
               sleep 40s
           fi
 
-################################################################ check-tf-code-and-create-plan-and-update-pr ###############################################################
+################################################################ check-tf-code-and-create-plan-and-update-pr ##############################################################
 
   check-tf-code-and-create-plan-and-update-pr:
     needs: initialize-tf-backend-if-does-not-exists
