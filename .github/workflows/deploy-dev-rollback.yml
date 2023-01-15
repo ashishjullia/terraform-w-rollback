@@ -1,22 +1,22 @@
 name: Deploy Dev Rollback
 
-# on:
-  # workflow_dispatch:
+on:
+  workflow_dispatch:
 # on:
 #   workflow_run:
 #     workflows: [Prepare Deploy Dev Rollback]
 #     types: [completed]
-on:
-  workflow_call:
-    secrets:
-      AWS_REGION:
-        required: true
-      AWS_ACCESS_KEY_ID:
-        required: true
-      AWS_SECRET_ACCESS_KEY:
-        required: true
-      PASSED_GITHUB_TOKEN:
-        required: true
+# on:
+#   workflow_call:
+#     secrets:
+#       AWS_REGION:
+#         required: true
+#       AWS_ACCESS_KEY_ID:
+#         required: true
+#       AWS_SECRET_ACCESS_KEY:
+#         required: true
+#       PASSED_GITHUB_TOKEN:
+#         required: true
 
 env:
   TF_STATE_BUCKET_NAME: "terraform-ashishjullia"
@@ -64,19 +64,32 @@ jobs:
       #   with:
       #     name: working-code
       #     path: ./working-code
-      - name: 'Download artifact'
-        uses: actions/github-script@v6
-        with:
-          script: |
-            console.log(context.runId)
-            console.log(context.repo)
-            let allArtifacts = await github.rest.actions.listWorkflowRunArtifacts({
-               owner: context.repo.owner,
-               repo: context.repo.repo,
-               run_id: context.runId,
-            });
+      - name: Download the Artifact
+        id: downloadartifacts
+        run: |
+          git config user.name github-actions
+          git config user.email github-actions@github.com
 
-            console.log(allArtifacts)
+          artifact_id=$(gh api -H "Accept: application/vnd.github+json" repos/ashishjullia/terraform-w-separate-workflows/actions/runs/${{ github.run_id }}/artifacts --jq '.artifacts[].id')
+
+          gh api -H "Accept: application/vnd.github+json" /repos/ashishjullia/terraform-w-separate-workflows/actions/artifacts/$artifact_id/zip
+          ls -la
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # - name: 'Download artifact'
+      #   uses: actions/github-script@v6
+      #   with:
+      #     script: |
+      #       console.log(context.runId)
+      #       console.log(context.repo)
+      #       let allArtifacts = await github.rest.actions.listWorkflowRunArtifacts({
+      #          owner: context.repo.owner,
+      #          repo: context.repo.repo,
+      #          run_id: context.runId,
+      #       });
+
+      #       console.log(allArtifacts)
       #       let matchArtifact = allArtifacts.data.artifacts.filter((artifact) => {
       #         return artifact.name == "working-code"
       #       })[0];
@@ -88,8 +101,11 @@ jobs:
       #       });
       #       let fs = require('fs');
       #       fs.writeFileSync(`${process.env.GITHUB_WORKSPACE}/working-code.zip`, Buffer.from(download.data));
-        env:
-          GITHUB_TOKEN: ${{ secrets.PASSED_GITHUB_TOKEN }}
+        # env:
+        #   GITHUB_TOKEN: ${{ secrets.PASSED_GITHUB_TOKEN }}
+
+
+#--------------
 
       # - name: 'Unzip artifact'
       #   run: unzip working-code.zip -d working-code
