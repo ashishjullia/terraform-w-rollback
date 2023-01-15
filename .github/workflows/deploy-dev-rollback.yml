@@ -181,5 +181,5 @@ jobs:
           git push origin rollback-at-$rollback_time
           gh pr create -B main -H rollback-at-$rollback_time --title "Merge rollback-at-$rollback_time into main" --body 'Created by Github action'
         env:
-          GITHUB_TOKEN: ${{ secrets.PASSED_GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           # GITHUB_TOKEN: ${{ github.token }}
