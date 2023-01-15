@@ -15,7 +15,7 @@ on:
         required: true
       AWS_SECRET_ACCESS_KEY:
         required: true
-      GITHUB_TOKEN:
+      PASSED_GITHUB_TOKEN:
         required: true
 
 env:
@@ -147,5 +147,5 @@ jobs:
           git push origin rollback-at-$rollback_time
           gh pr create -B main -H rollback-at-$rollback_time --title "Merge rollback-at-$rollback_time into main" --body 'Created by Github action'
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          GITHUB_TOKEN: ${{ github.token }}
+          GITHUB_TOKEN: ${{ secrets.PASSED_GITHUB_TOKEN }}
+          # GITHUB_TOKEN: ${{ github.token }}
