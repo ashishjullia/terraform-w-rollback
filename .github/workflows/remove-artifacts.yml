@@ -4,7 +4,7 @@ name: Remove Artifacts
 #   workflow_dispatch:
 on:
   workflow_run:
-    workflows: [Deploy Dev Rollback]
+    workflows: [Prepare Deploy Dev Rollback]
     types: [completed]
     
 env:
