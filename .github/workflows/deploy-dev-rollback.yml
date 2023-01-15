@@ -77,87 +77,87 @@ jobs:
             });
 
             console.log(allArtifacts)
-            let matchArtifact = allArtifacts.data.artifacts.filter((artifact) => {
-              return artifact.name == "working-code"
-            })[0];
-            let download = await github.rest.actions.downloadArtifact({
-               owner: context.repo.owner,
-               repo: context.repo.repo,
-               artifact_id: matchArtifact.id,
-               archive_format: 'zip',
-            });
-            let fs = require('fs');
-            fs.writeFileSync(`${process.env.GITHUB_WORKSPACE}/working-code.zip`, Buffer.from(download.data));
-        env:
-          GITHUB_TOKEN: ${{ secrets.PASSED_GITHUB_TOKEN }}
-
-      - name: 'Unzip artifact'
-        run: unzip working-code.zip -d working-code
-
-      # - name: 'Comment on PR'
-      #   uses: actions/github-script@v6
-      #   with:
-      #     github-token: ${{ secrets.GITHUB_TOKEN }}
-      #     script: |
-      #       let fs = require('fs');
-      #       let issue_number = Number(fs.readFileSync('./pr_number'));
-      #       await github.rest.issues.createComment({
-      #         owner: context.repo.owner,
-      #         repo: context.repo.repo,
-      #         issue_number: issue_number,
-      #         body: 'Thank you for the PR!'
+      #       let matchArtifact = allArtifacts.data.artifacts.filter((artifact) => {
+      #         return artifact.name == "working-code"
+      #       })[0];
+      #       let download = await github.rest.actions.downloadArtifact({
+      #          owner: context.repo.owner,
+      #          repo: context.repo.repo,
+      #          artifact_id: matchArtifact.id,
+      #          archive_format: 'zip',
       #       });
-
-      - name: Approved Rollback 
-        id: approved-rollback
-        run: |
-          ls -la
-          cd working-code
-
-          terraform init \
-              -backend-config="bucket=$TF_STATE_BUCKET_NAME" \
-              -backend-config="key=$TF_STATE_BUCKET_KEY" \
-              -backend-config="region=$TF_STATE_BUCKET_REGION" \
-              -backend-config="dynamodb_table=$TF_STATE_DYNAMODB_TABLE_NAME"
-
-          # terraform apply rollback.tfplan -auto-approve -input=false 
-          terraform apply rollback.tfplan
-      
-      - name: create pull request
-        id: pullrequest
-        if: steps.approved-rollback.outcome == 'success'
-        run: |
-          rollback_time=$(date '+%Y-%m-%d-%H-%M-%S')
-          
-          cd latest-code
-          gh release list | awk '{print $1}' | head -1 | xargs -t -I % sh -c '{ gh release download % --archive=zip ; unzip -q ${WORKING_CODE_REPO_WITHOUT_OWNER}-%.zip ; mv ${WORKING_CODE_REPO_WITHOUT_OWNER}-% ../intermediate-code ; rm ${WORKING_CODE_REPO_WITHOUT_OWNER}-%.zip ; }'
-          cd ..
-          
-          mkdir to-be-deleted
-          
-          cp -ar ./latest-code/. ./to-be-deleted/
-          rm -rf latest-code
-          
-          mkdir latest-code
-          
-          mv ./to-be-deleted/.git ./latest-code/
-          
-          cp -ar ./intermediate-code/. ./latest-code/
-
-          cd latest-code
-          ls -la
-          git config user.name github-actions
-          git config user.email github-actions@github.com
-          git remote show origin
-          git checkout -b rollback-at-$rollback_time
-          git branch
-          date > exact-rollback-time
-          git add .
-          git commit -m "rollback"
-          ls -la
-          git remote show origin
-          git push origin rollback-at-$rollback_time
-          gh pr create -B main -H rollback-at-$rollback_time --title "Merge rollback-at-$rollback_time into main" --body 'Created by Github action'
+      #       let fs = require('fs');
+      #       fs.writeFileSync(`${process.env.GITHUB_WORKSPACE}/working-code.zip`, Buffer.from(download.data));
         env:
           GITHUB_TOKEN: ${{ secrets.PASSED_GITHUB_TOKEN }}
-          # GITHUB_TOKEN: ${{ github.token }}
+
+      # - name: 'Unzip artifact'
+      #   run: unzip working-code.zip -d working-code
+
+      # # - name: 'Comment on PR'
+      # #   uses: actions/github-script@v6
+      # #   with:
+      # #     github-token: ${{ secrets.GITHUB_TOKEN }}
+      # #     script: |
+      # #       let fs = require('fs');
+      # #       let issue_number = Number(fs.readFileSync('./pr_number'));
+      # #       await github.rest.issues.createComment({
+      # #         owner: context.repo.owner,
+      # #         repo: context.repo.repo,
+      # #         issue_number: issue_number,
+      # #         body: 'Thank you for the PR!'
+      # #       });
+
+      # - name: Approved Rollback 
+      #   id: approved-rollback
+      #   run: |
+      #     ls -la
+      #     cd working-code
+
+      #     terraform init \
+      #         -backend-config="bucket=$TF_STATE_BUCKET_NAME" \
+      #         -backend-config="key=$TF_STATE_BUCKET_KEY" \
+      #         -backend-config="region=$TF_STATE_BUCKET_REGION" \
+      #         -backend-config="dynamodb_table=$TF_STATE_DYNAMODB_TABLE_NAME"
+
+      #     # terraform apply rollback.tfplan -auto-approve -input=false 
+      #     terraform apply rollback.tfplan
+      
+      # - name: create pull request
+      #   id: pullrequest
+      #   if: steps.approved-rollback.outcome == 'success'
+      #   run: |
+      #     rollback_time=$(date '+%Y-%m-%d-%H-%M-%S')
+          
+      #     cd latest-code
+      #     gh release list | awk '{print $1}' | head -1 | xargs -t -I % sh -c '{ gh release download % --archive=zip ; unzip -q ${WORKING_CODE_REPO_WITHOUT_OWNER}-%.zip ; mv ${WORKING_CODE_REPO_WITHOUT_OWNER}-% ../intermediate-code ; rm ${WORKING_CODE_REPO_WITHOUT_OWNER}-%.zip ; }'
+      #     cd ..
+          
+      #     mkdir to-be-deleted
+          
+      #     cp -ar ./latest-code/. ./to-be-deleted/
+      #     rm -rf latest-code
+          
+      #     mkdir latest-code
+          
+      #     mv ./to-be-deleted/.git ./latest-code/
+          
+      #     cp -ar ./intermediate-code/. ./latest-code/
+
+      #     cd latest-code
+      #     ls -la
+      #     git config user.name github-actions
+      #     git config user.email github-actions@github.com
+      #     git remote show origin
+      #     git checkout -b rollback-at-$rollback_time
+      #     git branch
+      #     date > exact-rollback-time
+      #     git add .
+      #     git commit -m "rollback"
+      #     ls -la
+      #     git remote show origin
+      #     git push origin rollback-at-$rollback_time
+      #     gh pr create -B main -H rollback-at-$rollback_time --title "Merge rollback-at-$rollback_time into main" --body 'Created by Github action'
+      #   env:
+      #     GITHUB_TOKEN: ${{ secrets.PASSED_GITHUB_TOKEN }}
+      #     # GITHUB_TOKEN: ${{ github.token }}
