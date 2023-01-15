@@ -57,7 +57,9 @@ jobs:
       - name: Dump GitHub context
         env:
           GITHUB_CONTEXT: ${{ toJSON(github) }}
-        run: echo "$GITHUB_CONTEXT"
+        run: |
+          echo "$GITHUB_CONTEXT"
+          echo ${{ github.run_id }}
 
       # - uses: actions/download-artifact@v3
       #   with:
