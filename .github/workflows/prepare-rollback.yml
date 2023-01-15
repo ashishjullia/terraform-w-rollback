@@ -17,8 +17,8 @@ jobs:
     # needs: deploy-to-dev
     # if: ${{ github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
-    environment:
-      name: prepare-rollback
+    # environment:
+    #   name: prepare-rollback
     outputs:
       prepare-rollback-outcome: ${{ steps.setpreparerollbackoutcomevariable.outputs.prepare-rollback-outcome }}
     steps:

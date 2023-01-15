@@ -19,9 +19,9 @@ env:
 jobs:
   rollback:
     runs-on: ubuntu-latest
-    if: ${{ github.event.workflow_run.conclusion == 'success' }}
-    environment:
-      name: rollback
+    # if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    # environment:
+    #   name: rollback
     steps:
       - name: Setup AWS CLI for "gh actions" user
         id: ghactions
