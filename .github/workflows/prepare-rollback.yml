@@ -85,15 +85,15 @@ jobs:
           path: ./working-code
           retention-days: 1
 
-      - name: Trigger deploy-dev-rollback.yml
-        if: steps.uploadartifact.outcome == 'success'
-        run: |
-          cd new
-          git config user.name github-actions
-          git config user.email github-actions@github.com
-          gh workflow run deploy-dev-rollback.yml -f gh_workflow_run_id=${{ github.run_id }}
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      # - name: Trigger deploy-dev-rollback.yml
+      #   if: steps.uploadartifact.outcome == 'success'
+      #   run: |
+      #     cd new
+      #     git config user.name github-actions
+      #     git config user.email github-actions@github.com
+      #     gh workflow run deploy-dev-rollback.yml -f gh_workflow_run_id=${{ github.run_id }}
+      #   env:
+      #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   trigger-rollback:
     needs: prepare-rollback
