@@ -93,3 +93,7 @@ jobs:
           gh workflow run deploy-dev-rollback.yml
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  trigger-rollback:
+    needs: prepare-rollback
+    uses: ./.github/workflows/deploy-dev-rollback.yml
