@@ -1,22 +1,24 @@
 name: Deploy Dev Rollback
 
-on:
-  workflow_dispatch:
 # on:
+#   workflow_dispatch:
+# on: gh_workflow_run_id
 #   workflow_run:
 #     workflows: [Prepare Deploy Dev Rollback]
 #     types: [completed]
-# on:
-#   workflow_call:
-#     secrets:
-#       AWS_REGION:
-#         required: true
-#       AWS_ACCESS_KEY_ID:
-#         required: true
-#       AWS_SECRET_ACCESS_KEY:
-#         required: true
-#       PASSED_GITHUB_TOKEN:
-#         required: true
+on:
+  workflow_call:
+    secrets:
+      AWS_REGION:
+        required: true
+      AWS_ACCESS_KEY_ID:
+        required: true
+      AWS_SECRET_ACCESS_KEY:
+        required: true
+      PASSED_GITHUB_TOKEN:
+        required: true
+      GH_WORKFLOW_RUN_ID:
+        required: true
 
 env:
   TF_STATE_BUCKET_NAME: "terraform-ashishjullia"
@@ -67,12 +69,11 @@ jobs:
       - name: Download the Artifact
         id: downloadartifacts
         run: |
+          cd latest-code
           git config user.name github-actions
           git config user.email github-actions@github.com
 
-          artifact_id=$(gh api -H "Accept: application/vnd.github+json" repos/ashishjullia/terraform-w-separate-workflows/actions/runs/${{ github.run_id }}/artifacts --jq '.artifacts[].id')
-
-          gh api -H "Accept: application/vnd.github+json" /repos/ashishjullia/terraform-w-separate-workflows/actions/artifacts/$artifact_id/zip
+          gh run download ${{ secrets.GH_WORKFLOW_RUN_ID }} -n working-code
           ls -la
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
