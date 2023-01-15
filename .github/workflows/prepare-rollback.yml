@@ -17,8 +17,8 @@ jobs:
     # needs: deploy-to-dev
     # if: ${{ github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
-    # environment:
-    #   name: prepare-rollback
+    environment:
+      name: prepare-rollback
     outputs:
       prepare-rollback-outcome: ${{ steps.setpreparerollbackoutcomevariable.outputs.prepare-rollback-outcome }}
     steps:
@@ -78,28 +78,8 @@ jobs:
           rm ./working-code/.terraform.lock.hcl 
         
       - uses: actions/upload-artifact@v3
-        id: uploadartifact
         if: steps.removedotterraformdir.outcome == 'success'
         with:
           name: working-code
           path: ./working-code
           retention-days: 1
-
-      # - name: Trigger deploy-dev-rollback.yml
-      #   if: steps.uploadartifact.outcome == 'success'
-      #   run: |
-      #     cd new
-      #     git config user.name github-actions
-      #     git config user.email github-actions@github.com
-      #     gh workflow run deploy-dev-rollback.yml -f gh_workflow_run_id=${{ github.run_id }}
-      #   env:
-      #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-  trigger-rollback:
-    needs: prepare-rollback
-    uses: ./.github/workflows/deploy-dev-rollback.yml
-    secrets:
-      AWS_REGION: ${{ secrets.AWS_REGION }}
-      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-      # PASSED_GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
