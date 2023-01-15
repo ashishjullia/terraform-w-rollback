@@ -1,0 +1,30 @@
+name: Remove Artifacts
+
+# on:
+#   workflow_dispatch:
+on:
+  workflow_run:
+    workflows: [Deploy Dev Rollback]
+    types: [completed]
+    
+env:
+  WORKING_CODE_REPO: ${{ github.repository }}
+
+jobs:
+  remove-artifacts:
+    runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    steps:
+      - uses: actions/checkout@v3      
+      - name: Remove artifacts
+        id: removeartifacts
+        run: |
+          git config user.name github-actions
+          git config user.email github-actions@github.com
+          gh api -H "Accept: application/vnd.github+json" \
+            /repos/$WORKING_CODE_REPO/actions/artifacts \
+            --jq '.artifacts[].id' | xargs -I {} sh -c \
+            'gh api --method DELETE -H "Accept: application/vnd.github+json" /repos/$WORKING_CODE_REPO/actions/artifacts/{}'
+
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -1,0 +1,460 @@
+name: deploy development
+
+on:
+  push:
+    branches:
+      - main
+    paths-ignore:
+      - "README.md"
+      - ".github/workflows/destroy-dev.yml"
+      - ".github/workflows/deploy-dev-rollback.yml"
+      - ".github/workflows/remove-artifacts.yml"
+  pull_request:
+    paths-ignore:
+      - "README.md"
+      - ".github/workflows/destroy-dev.yml"
+      - ".github/workflows/remove-artifacts.yml"
+
+env:
+  TF_STATE_BUCKET_NAME: "terraform-ashishjullia"
+  TF_STATE_BUCKET_KEY: "${{ github.event.repository.name }}/terraform.tfstate"
+  TF_STATE_BUCKET_REGION: "us-east-1"
+  TF_STATE_DYNAMODB_TABLE_NAME: "tfstate-tf-test-s3-ashish"
+  TF_STATE_DYNAMODB_TABLE_REGION: "us-east-1"
+  WORKING_CODE_REPO: ${{ github.repository }}
+  WORKING_CODE_REPO_WITHOUT_OWNER: ${{ github.event.repository.name }}
+  WORKING_CODE_REPO_OWNER: ${{ github.event.repository.owner.name }}
+
+jobs:
+################################################################ initialize-tf-backend-if-does-not-exists ###############################################################
+
+  initialize-tf-backend-if-does-not-exists:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Setup AWS CLI for "gh actions" user
+        id: ghactions
+        uses: aws-actions/configure-aws-credentials@v1-node16
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Setup TF backend (Create if it does not exists)
+        run: |
+          tfStateBucketName=$TF_STATE_BUCKET_NAME
+          tfStateBucketRegion=$TF_STATE_BUCKET_REGION
+          tfStateBucketExistence=$(aws s3 ls | grep $tfStateBucketName | awk '{print $3}')
+
+          tfStateDyanmoDBTableName=$TF_STATE_DYNAMODB_TABLE_NAME
+          tfStateDyanmoDBTableRegion=$TF_STATE_DYNAMODB_TABLE_REGION
+          tfStateDyanmoDBTableExistence=$(aws dynamodb list-tables --region=$tfStateDyanmoDBTableRegion --output text | grep $tfStateDyanmoDBTableName | awk '{print $2}')
+
+          if [ "$tfStateBucketExistence" == "$tfStateBucketName" ]
+          then
+              echo "The $tfStateBucketName bucket already exists."
+          else
+              aws s3api create-bucket \
+                  --bucket $tfStateBucketName \
+                  --region $tfStateBucketRegion
+
+              # not needed if the region is us-east-1
+              #--create-bucket-configuration LocationConstraint=$tfStateBucketRegion
+
+              aws s3api put-bucket-versioning \
+                  --bucket $tfStateBucketName \
+                  --versioning-configuration Status=Enabled
+
+              aws s3api put-bucket-encryption \
+                  --bucket $tfStateBucketName \
+                  --server-side-encryption-configuration '{"Rules": [{"ApplyServerSideEncryptionByDefault": {"SSEAlgorithm": "AES256"}}]}'
+
+              aws s3api put-public-access-block \
+                  --bucket $tfStateBucketName \
+                  --public-access-block-configuration "BlockPublicAcls=true,IgnorePublicAcls=true,BlockPublicPolicy=true,RestrictPublicBuckets=true"
+          fi
+
+          if [ "$tfStateDyanmoDBTableExistence" == "$tfStateDyanmoDBTableName" ]
+          then
+              echo "The $tfStateDyanmoDBTableName dynmoDB table already exists."
+          else
+              aws dynamodb create-table \
+                  --table-name $tfStateDyanmoDBTableName \
+                  --region $tfStateDyanmoDBTableRegion \
+                  --attribute-definitions AttributeName=LockID,AttributeType=S \
+                  --key-schema AttributeName=LockID,KeyType=HASH \
+                  --provisioned-throughput ReadCapacityUnits=5,WriteCapacityUnits=5 \
+                  --tags Key=Owner,Value=tf \
+                  --output text
+              
+              sleep 40s
+          fi
+
+################################################################ check-tf-code-and-create-plan-and-update-pr ###############################################################
+
+  check-tf-code-and-create-plan-and-update-pr:
+    needs: initialize-tf-backend-if-does-not-exists
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Setup AWS CLI for "gh actions" user
+        id: ghactions
+        uses: aws-actions/configure-aws-credentials@v1-node16
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Get Terraform Version
+        run: |
+          echo "TF_VERSION=$(head -n 1 .terraform-version)" >> $GITHUB_ENV
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_version: $TF_VERSION
+
+      # Check Terraform configuration files to a canonical format and style
+      - name: Check Terraform Format
+        id: fmt
+        run: terraform fmt -check
+
+      - name: Terraform Init
+        id: init
+        run: | 
+          # terraform init
+
+          terraform init \
+              -backend-config="bucket=$TF_STATE_BUCKET_NAME" \
+              -backend-config="key=$TF_STATE_BUCKET_KEY" \
+              -backend-config="region=$TF_STATE_BUCKET_REGION" \
+              -backend-config="dynamodb_table=$TF_STATE_DYNAMODB_TABLE_NAME"
+
+      # validates the configuration files in a directory, referring only to the configuration 
+      # and not accessing any remote services such as remote state, provider APIs, etc.
+      - name: Validate Terraform Code
+        id: validate
+        run: terraform validate
+
+      - name: Generate Terraform Plan
+        id: plan
+        if: "steps.init.outcome == 'success' && github.event_name == 'pull_request'"
+        run: terraform plan -no-color -input=false
+        continue-on-error: true
+
+      # This will only run on a "Pull Request"
+      - name: Update Pull Request
+        uses: actions/github-script@v6
+        if: github.event_name == 'pull_request'
+        env:
+          PLAN: "terraform\n${{ steps.plan.outputs.stdout }}"
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const output = `#### Terraform Format and Style 🖌\`${{ steps.fmt.outcome }}\`
+            #### Terraform Initialization ⚙️\`${{ steps.init.outcome }}\`
+            #### Terraform Plan 📖\`${{ steps.plan.outcome }}\`
+            #### Terraform Validation 🤖\`${{ steps.validate.outcome }}\`
+
+            <details><summary>Show Plan</summary>
+
+            \`\`\`\n
+            ${process.env.PLAN}
+            \`\`\`
+
+            </details>
+
+            *Pushed by: @${{ github.actor }}, Action: \`${{ github.event_name }}\`*`;
+
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: output
+            })
+
+      - name: Terraform Plan Status
+        if: steps.plan.outcome == 'failure'
+        run: exit 1
+
+################################################################ deploy-to-dev ################################################################################
+
+  deploy-to-dev:
+    needs: initialize-tf-backend-if-does-not-exists
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    outputs:
+      apply-outcome: ${{ steps.setapplyoutcomevariable.outputs.apply-outcome }}
+      destroy-outcome: ${{ steps.destroytf.outputs.destroy-outcome }}
+    steps:
+      - uses: actions/checkout@v3
+      - name: Setup AWS CLI for "gh actions" user
+        id: ghactions
+        uses: aws-actions/configure-aws-credentials@v1-node16
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      # - name: Setup Git
+      #   run: |
+      #     git config --global user.name "GitHub Actions Bot"
+      #     git config --global user.email "<>"
+
+      - name: Capture working code
+        id: for-release
+        uses: actions/checkout@v3
+        with:
+          repository: ${{ env.WORKING_CODE_REPO }}
+          fetch-depth: '0'
+          ref: 'main'
+          path: for-release
+      
+      - name: Get Terraform Version
+        run: |
+          echo "TF_VERSION=$(head -n 1 .terraform-version)" >> $GITHUB_ENV
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_version: $TF_VERSION
+
+      # Check Terraform configuration files to a canonical format and style
+      - name: Check Terraform Format
+        id: fmt
+        run: terraform fmt -check
+
+      - name: Terraform Init
+        id: init
+        run: | 
+          terraform init \
+              -backend-config="bucket=$TF_STATE_BUCKET_NAME" \
+              -backend-config="key=$TF_STATE_BUCKET_KEY" \
+              -backend-config="region=$TF_STATE_BUCKET_REGION" \
+              -backend-config="dynamodb_table=$TF_STATE_DYNAMODB_TABLE_NAME"
+      
+      # validates the configuration files in a directory, referring only to the configuration 
+      # and not accessing any remote services such as remote state, provider APIs, etc.
+      - name: Validate Terraform Code
+        id: validate
+        run: terraform validate
+
+      - name: Terraform Apply
+        id: apply
+        # if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        run: |
+          terraform apply -auto-approve -input=false
+        continue-on-error: true
+
+      - name: Set apply outcome variable
+        id: setapplyoutcomevariable
+        if: steps.apply.outcome == 'failure'
+        run: |
+          echo "apply-outcome=failure" >> $GITHUB_OUTPUT
+
+      - name: Check gh release count
+        run: |
+          echo "RELEASE_COUNT=$(gh release list | wc -l)" >> $GITHUB_ENV
+        env:
+            GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Destroy is apply==failure and 0 releases
+        id: destroytf
+        if: steps.apply.outcome == 'failure' && env.RELEASE_COUNT == 0
+        run: |
+          terraform destroy -auto-approve
+          echo "destroy-outcome=1" >> $GITHUB_OUTPUT
+
+      - name: If apply successful, create a release
+        id: release
+        if: steps.apply.outcome == 'success'
+        run: |
+          cd for-release
+          ls
+          rm -rf .git
+          date '+%Y%m%d%H%M%S' | xargs -t -I % sh -c '{ git tag "release-%"; gh release create "release-%" --generate-notes --target main; }'
+        env:
+            GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+################################################################ prepare-rollback ################################################################################
+
+  prepare-rollback:
+    needs: deploy-to-dev
+    if: needs.deploy-to-dev.outputs.apply-outcome == 'failure' && needs.deploy-to-dev.outputs.destroy-outcome != 1
+    runs-on: ubuntu-latest
+    environment:
+      name: prepare-rollback
+    outputs:
+      prepare-rollback-outcome: ${{ steps.setpreparerollbackoutcomevariable.outputs.prepare-rollback-outcome }}
+    steps:
+      - uses: actions/checkout@v3
+      - name: Setup AWS CLI for "gh actions" user
+        id: ghactions
+        uses: aws-actions/configure-aws-credentials@v1-node16
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Setup Git
+        # id: setupgit
+        run: |
+          git config --global user.name "GitHub Actions Bot"
+          git config --global user.email "<>" 
+      
+      - name: Clone Code to 'new' Directory
+        uses: actions/checkout@v3
+        id: new
+        if: steps.ghactions.outcome == 'success'
+        with:
+          path: new
+      
+      - name: Setup Terraform Code For Rollback
+        id: prepare-intermediate-rollback
+        if: steps.new.outcome == 'success'
+        run: |
+          gh release list | awk '{print $1}' | head -1 | xargs -t -I % sh -c '{ gh release download % --archive=zip; unzip -q ${WORKING_CODE_REPO_WITHOUT_OWNER}-%.zip; mv ${WORKING_CODE_REPO_WITHOUT_OWNER}-% working-code;}'
+          cd working-code
+
+          cp ../new/provider.tf .
+
+          terraform init \
+              -backend-config="bucket=$TF_STATE_BUCKET_NAME" \
+              -backend-config="key=$TF_STATE_BUCKET_KEY" \
+              -backend-config="region=$TF_STATE_BUCKET_REGION" \
+              -backend-config="dynamodb_table=$TF_STATE_DYNAMODB_TABLE_NAME"
+
+          terraform plan -no-color -input=false -out=rollback.tfplan
+  
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Set prepare-rollback outcome variable
+        id: setpreparerollbackoutcomevariable
+        if: steps.prepare-intermediate-rollback.outcome == 'success'
+        run: |
+          echo "prepare-rollback-outcome=success" >> $GITHUB_OUTPUT
+
+      - name: Remove .terraform folder before upload artifact
+        id: removedotterraformdir
+        if: steps.setpreparerollbackoutcomevariable.outcome == 'success'
+        run: |
+          rm -rf ./working-code/.terraform
+          rm ./working-code/.terraform.lock.hcl 
+        
+      - uses: actions/upload-artifact@v3
+        if: steps.removedotterraformdir.outcome == 'success'
+        with:
+          name: working-code
+          path: ./working-code
+          retention-days: 1
+
+      # - name: Trigger deploy-dev-rollback.yml
+      #   run: |
+      #     cd new
+      #     git config user.name github-actions
+      #     git config user.email github-actions@github.com
+      #     gh workflow run deploy-dev-rollback.yml
+      #   env:
+      #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+################################################################ rollback ################################################################################
+
+  # rollback:
+  #   needs: prepare-rollback
+  #   if: needs.prepare-rollback.outputs.prepare-rollback-outcome == 'success'
+  #   runs-on: ubuntu-latest
+  #   environment:
+  #     name: rollback
+  #   steps:
+  #     - name: Setup AWS CLI for "gh actions" user
+  #       id: ghactions
+  #       uses: aws-actions/configure-aws-credentials@v1-node16
+  #       with:
+  #         aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+  #         aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+  #         aws-region: ${{ secrets.AWS_REGION }}
+      
+  #     - uses: actions/setup-node@v3
+  #       with:
+  #         node-version: 18
+
+  #     - name: Setup Git
+  #       run: |
+  #         git config --global user.name "GitHub Actions Bot"
+  #         git config --global user.email "<>"
+
+  #     - name: Clone Code to 'latest-code' Directory with depth '0'
+  #       id: latest-code
+  #       uses: actions/checkout@v3
+  #       with:
+  #         fetch-depth: '0'
+  #         path: latest-code
+
+  #     - uses: actions/download-artifact@v3
+  #       with:
+  #         name: working-code
+  #         path: ./working-code
+
+  #     - name: Approved Rollback 
+  #       id: approved-rollback
+  #       run: |
+  #         cd working-code
+
+  #         terraform init \
+  #             -backend-config="bucket=$TF_STATE_BUCKET_NAME" \
+  #             -backend-config="key=$TF_STATE_BUCKET_KEY" \
+  #             -backend-config="region=$TF_STATE_BUCKET_REGION" \
+  #             -backend-config="dynamodb_table=$TF_STATE_DYNAMODB_TABLE_NAME"
+
+  #         # terraform apply rollback.tfplan -auto-approve -input=false 
+  #         terraform apply rollback.tfplan
+      
+  #     - name: create pull request
+  #       id: pullrequest
+  #       if: steps.approved-rollback.outcome == 'success'
+  #       run: |
+  #         rollback_time=$(date '+%Y-%m-%d-%H-%M-%S')
+          
+  #         cd latest-code
+  #         gh release list | awk '{print $1}' | head -1 | xargs -t -I % sh -c '{ gh release download % --archive=zip ; unzip -q ${WORKING_CODE_REPO_WITHOUT_OWNER}-%.zip ; mv ${WORKING_CODE_REPO_WITHOUT_OWNER}-% ../intermediate-code ; rm ${WORKING_CODE_REPO_WITHOUT_OWNER}-%.zip ; }'
+  #         cd ..
+          
+  #         mkdir to-be-deleted
+          
+  #         cp -ar ./latest-code/. ./to-be-deleted/
+  #         rm -rf latest-code
+          
+  #         mkdir latest-code
+          
+  #         mv ./to-be-deleted/.git ./latest-code/
+          
+  #         cp -ar ./intermediate-code/. ./latest-code/
+
+  #         cd latest-code
+  #         ls -la
+  #         git config user.name github-actions
+  #         git config user.email github-actions@github.com
+  #         git remote show origin
+  #         git checkout -b rollback-at-$rollback_time
+  #         git branch
+  #         date > exact-rollback-time
+  #         git add .
+  #         git commit -m "rollback"
+  #         ls -la
+  #         git remote show origin
+  #         git push origin rollback-at-$rollback_time
+  #         gh pr create -B main -H rollback-at-$rollback_time --title "Merge rollback-at-$rollback_time into main" --body 'Created by Github action'
+  #       env:
+  #         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  #         GITHUB_TOKEN: ${{ github.token }}
+
+      # - name: Trigger remove-artifacts.yml
+      #   run: |
+      #     cd latest-code
+      #     git config user.name github-actions
+      #     git config user.email github-actions@github.com
+      #     gh workflow run remove-artifacts.yml
+      #   env:
+      #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
