@@ -15,10 +15,10 @@ on:
         required: true
       AWS_SECRET_ACCESS_KEY:
         required: true
-      PASSED_GITHUB_TOKEN:
-        required: true
-      GH_WORKFLOW_RUN_ID:
-        required: true
+      # PASSED_GITHUB_TOKEN:
+      #   required: true
+      # GH_WORKFLOW_RUN_ID:
+      #   required: true
 
 env:
   TF_STATE_BUCKET_NAME: "terraform-ashishjullia"
@@ -73,7 +73,7 @@ jobs:
           git config user.name github-actions
           git config user.email github-actions@github.com
 
-          gh run download ${{ secrets.GH_WORKFLOW_RUN_ID }} -n working-code
+          gh run download ${{ github.run_id }} -n working-code
           ls -la
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
