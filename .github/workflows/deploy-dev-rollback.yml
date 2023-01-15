@@ -75,6 +75,8 @@ jobs:
                repo: context.repo.repo,
                run_id: context.runId,
             });
+
+            console.log(allArtifacts)
             let matchArtifact = allArtifacts.data.artifacts.filter((artifact) => {
               return artifact.name == "working-code"
             })[0];
