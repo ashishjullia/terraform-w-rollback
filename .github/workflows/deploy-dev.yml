@@ -245,7 +245,7 @@ jobs:
         # if: github.ref == 'refs/heads/main' && github.event_name == 'push'
         run: |
           terraform apply -auto-approve -input=false
-        # continue-on-error: true
+        continue-on-error: true
 
       - name: Set apply outcome variable
         id: setapplyoutcomevariable
