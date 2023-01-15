@@ -8,10 +8,9 @@ name: Deploy Dev Rollback
 #     types: [completed]
 on:
   workflow_call:
-    inputs:
-      aws-region:
+    secrets:
+      AWS_REGION:
         required: true
-        type: string
     
 env:
   TF_STATE_BUCKET_NAME: "terraform-ashishjullia"
