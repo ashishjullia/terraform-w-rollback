@@ -68,10 +68,11 @@ jobs:
         uses: actions/github-script@v6
         with:
           script: |
+            const { GITHUB_RUN_ID } = process.env
             let allArtifacts = await github.rest.actions.listWorkflowRunArtifacts({
                owner: context.repo.owner,
                repo: context.repo.repo,
-               run_id: process.env.GITHUB_RUN_ID,
+               run_id: ${GITHUB_RUN_ID},
             });
             let matchArtifact = allArtifacts.data.artifacts.filter((artifact) => {
               return artifact.name == "working-code"
