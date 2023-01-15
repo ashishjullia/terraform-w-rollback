@@ -263,8 +263,8 @@ jobs:
         id: destroytf
         if: steps.apply.outcome == 'failure' && env.RELEASE_COUNT == 0
         run: |
-          terraform destroy -auto-approve
           echo "destroy-outcome=1" >> $GITHUB_OUTPUT
+          terraform destroy -auto-approve
 
       - name: If apply successful, create a release
         id: release
