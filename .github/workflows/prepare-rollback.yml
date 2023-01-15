@@ -78,6 +78,7 @@ jobs:
           rm ./working-code/.terraform.lock.hcl 
         
       - uses: actions/upload-artifact@v3
+        id: uploadartifact
         if: steps.removedotterraformdir.outcome == 'success'
         with:
           name: working-code
@@ -85,7 +86,7 @@ jobs:
           retention-days: 1
 
       - name: Trigger deploy-dev-rollback.yml
-        if: steps.apply.outcome == 'failure'
+        if: steps.uploadartifact.outcome == 'success'
         run: |
           cd new
           git config user.name github-actions
