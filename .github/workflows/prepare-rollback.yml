@@ -2,10 +2,6 @@ name: Prepare Deploy Dev Rollback
 
 on:
   workflow_dispatch:
-# on:
-#   workflow_run:
-#     workflows: [Deploy Development]
-#     types: [completed]
     
 env:
   TF_STATE_BUCKET_NAME: "terraform-ashishjullia"
