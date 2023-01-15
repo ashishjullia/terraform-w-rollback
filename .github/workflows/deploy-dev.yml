@@ -1,4 +1,4 @@
-name: deploy development
+name: Deploy Development
 
 on:
   push:
@@ -245,7 +245,7 @@ jobs:
         # if: github.ref == 'refs/heads/main' && github.event_name == 'push'
         run: |
           terraform apply -auto-approve -input=false
-        continue-on-error: true
+        # continue-on-error: true
 
       - name: Set apply outcome variable
         id: setapplyoutcomevariable
@@ -279,76 +279,76 @@ jobs:
 
 ################################################################ prepare-rollback ################################################################################
 
-  prepare-rollback:
-    needs: deploy-to-dev
-    if: needs.deploy-to-dev.outputs.apply-outcome == 'failure' && needs.deploy-to-dev.outputs.destroy-outcome != 1
-    runs-on: ubuntu-latest
-    environment:
-      name: prepare-rollback
-    outputs:
-      prepare-rollback-outcome: ${{ steps.setpreparerollbackoutcomevariable.outputs.prepare-rollback-outcome }}
-    steps:
-      - uses: actions/checkout@v3
-      - name: Setup AWS CLI for "gh actions" user
-        id: ghactions
-        uses: aws-actions/configure-aws-credentials@v1-node16
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ secrets.AWS_REGION }}
+  # prepare-rollback:
+  #   needs: deploy-to-dev
+  #   if: needs.deploy-to-dev.outputs.apply-outcome == 'failure' && needs.deploy-to-dev.outputs.destroy-outcome != 1
+  #   runs-on: ubuntu-latest
+  #   environment:
+  #     name: prepare-rollback
+  #   outputs:
+  #     prepare-rollback-outcome: ${{ steps.setpreparerollbackoutcomevariable.outputs.prepare-rollback-outcome }}
+  #   steps:
+  #     - uses: actions/checkout@v3
+  #     - name: Setup AWS CLI for "gh actions" user
+  #       id: ghactions
+  #       uses: aws-actions/configure-aws-credentials@v1-node16
+  #       with:
+  #         aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+  #         aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+  #         aws-region: ${{ secrets.AWS_REGION }}
 
-      - name: Setup Git
-        # id: setupgit
-        run: |
-          git config --global user.name "GitHub Actions Bot"
-          git config --global user.email "<>" 
+  #     - name: Setup Git
+  #       # id: setupgit
+  #       run: |
+  #         git config --global user.name "GitHub Actions Bot"
+  #         git config --global user.email "<>" 
       
-      - name: Clone Code to 'new' Directory
-        uses: actions/checkout@v3
-        id: new
-        if: steps.ghactions.outcome == 'success'
-        with:
-          path: new
+  #     - name: Clone Code to 'new' Directory
+  #       uses: actions/checkout@v3
+  #       id: new
+  #       if: steps.ghactions.outcome == 'success'
+  #       with:
+  #         path: new
       
-      - name: Setup Terraform Code For Rollback
-        id: prepare-intermediate-rollback
-        if: steps.new.outcome == 'success'
-        run: |
-          gh release list | awk '{print $1}' | head -1 | xargs -t -I % sh -c '{ gh release download % --archive=zip; unzip -q ${WORKING_CODE_REPO_WITHOUT_OWNER}-%.zip; mv ${WORKING_CODE_REPO_WITHOUT_OWNER}-% working-code;}'
-          cd working-code
+  #     - name: Setup Terraform Code For Rollback
+  #       id: prepare-intermediate-rollback
+  #       if: steps.new.outcome == 'success'
+  #       run: |
+  #         gh release list | awk '{print $1}' | head -1 | xargs -t -I % sh -c '{ gh release download % --archive=zip; unzip -q ${WORKING_CODE_REPO_WITHOUT_OWNER}-%.zip; mv ${WORKING_CODE_REPO_WITHOUT_OWNER}-% working-code;}'
+  #         cd working-code
 
-          cp ../new/provider.tf .
+  #         cp ../new/provider.tf .
 
-          terraform init \
-              -backend-config="bucket=$TF_STATE_BUCKET_NAME" \
-              -backend-config="key=$TF_STATE_BUCKET_KEY" \
-              -backend-config="region=$TF_STATE_BUCKET_REGION" \
-              -backend-config="dynamodb_table=$TF_STATE_DYNAMODB_TABLE_NAME"
+  #         terraform init \
+  #             -backend-config="bucket=$TF_STATE_BUCKET_NAME" \
+  #             -backend-config="key=$TF_STATE_BUCKET_KEY" \
+  #             -backend-config="region=$TF_STATE_BUCKET_REGION" \
+  #             -backend-config="dynamodb_table=$TF_STATE_DYNAMODB_TABLE_NAME"
 
-          terraform plan -no-color -input=false -out=rollback.tfplan
+  #         terraform plan -no-color -input=false -out=rollback.tfplan
   
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  #       env:
+  #         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       
-      - name: Set prepare-rollback outcome variable
-        id: setpreparerollbackoutcomevariable
-        if: steps.prepare-intermediate-rollback.outcome == 'success'
-        run: |
-          echo "prepare-rollback-outcome=success" >> $GITHUB_OUTPUT
+  #     - name: Set prepare-rollback outcome variable
+  #       id: setpreparerollbackoutcomevariable
+  #       if: steps.prepare-intermediate-rollback.outcome == 'success'
+  #       run: |
+  #         echo "prepare-rollback-outcome=success" >> $GITHUB_OUTPUT
 
-      - name: Remove .terraform folder before upload artifact
-        id: removedotterraformdir
-        if: steps.setpreparerollbackoutcomevariable.outcome == 'success'
-        run: |
-          rm -rf ./working-code/.terraform
-          rm ./working-code/.terraform.lock.hcl 
+  #     - name: Remove .terraform folder before upload artifact
+  #       id: removedotterraformdir
+  #       if: steps.setpreparerollbackoutcomevariable.outcome == 'success'
+  #       run: |
+  #         rm -rf ./working-code/.terraform
+  #         rm ./working-code/.terraform.lock.hcl 
         
-      - uses: actions/upload-artifact@v3
-        if: steps.removedotterraformdir.outcome == 'success'
-        with:
-          name: working-code
-          path: ./working-code
-          retention-days: 1
+  #     - uses: actions/upload-artifact@v3
+  #       if: steps.removedotterraformdir.outcome == 'success'
+  #       with:
+  #         name: working-code
+  #         path: ./working-code
+  #         retention-days: 1
 
       # - name: Trigger deploy-dev-rollback.yml
       #   run: |

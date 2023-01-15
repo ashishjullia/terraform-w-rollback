@@ -4,7 +4,7 @@ name: Deploy Dev Rollback
   # workflow_dispatch:
 on:
   workflow_run:
-    workflows: [deploy development]
+    workflows: [Prepare Deploy Dev Rollback]
     types: [completed]
     
 env:
