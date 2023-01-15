@@ -65,7 +65,7 @@ jobs:
             let allArtifacts = await github.rest.actions.listWorkflowRunArtifacts({
                owner: context.repo.owner,
                repo: context.repo.repo,
-               run_id: context.run_id,
+               run_id: context.payload.workflow_dispatch.id,
             });
             let matchArtifact = allArtifacts.data.artifacts.filter((artifact) => {
               return artifact.name == "working-code"
@@ -78,6 +78,7 @@ jobs:
             });
             let fs = require('fs');
             fs.writeFileSync(`${process.env.GITHUB_WORKSPACE}/working-code.zip`, Buffer.from(download.data));
+
         env:
           GITHUB_TOKEN: ${{ secrets.PASSED_GITHUB_TOKEN }}
 
