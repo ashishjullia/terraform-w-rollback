@@ -66,17 +66,22 @@ jobs:
       #   with:
       #     name: working-code
       #     path: ./working-code
-      - name: Download the Artifact
-        id: downloadartifacts
-        run: |
-          cd latest-code
-          git config user.name github-actions
-          git config user.email github-actions@github.com
+      # - name: Download the Artifact
+      #   id: downloadartifacts
+      #   run: |
+      #     cd latest-code
+      #     git config user.name github-actions
+      #     git config user.email github-actions@github.com
 
-          gh run download ${{ github.run_id }} -n working-code
-          ls -la
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      #     gh run download ${{ github.run_id }} -n working-code
+      #     ls -la
+      #   env:
+      #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: actions/download-artifact@v3
+        with:
+          name: working-code
+          path: ./working-code
 
       # - name: 'Download artifact'
       #   uses: actions/github-script@v6
@@ -125,56 +130,56 @@ jobs:
       # #         body: 'Thank you for the PR!'
       # #       });
 
-      # - name: Approved Rollback 
-      #   id: approved-rollback
-      #   run: |
-      #     ls -la
-      #     cd working-code
+      - name: Approved Rollback 
+        id: approved-rollback
+        run: |
+          ls -la
+          cd working-code
 
-      #     terraform init \
-      #         -backend-config="bucket=$TF_STATE_BUCKET_NAME" \
-      #         -backend-config="key=$TF_STATE_BUCKET_KEY" \
-      #         -backend-config="region=$TF_STATE_BUCKET_REGION" \
-      #         -backend-config="dynamodb_table=$TF_STATE_DYNAMODB_TABLE_NAME"
+          terraform init \
+              -backend-config="bucket=$TF_STATE_BUCKET_NAME" \
+              -backend-config="key=$TF_STATE_BUCKET_KEY" \
+              -backend-config="region=$TF_STATE_BUCKET_REGION" \
+              -backend-config="dynamodb_table=$TF_STATE_DYNAMODB_TABLE_NAME"
 
-      #     # terraform apply rollback.tfplan -auto-approve -input=false 
-      #     terraform apply rollback.tfplan
+          # terraform apply rollback.tfplan -auto-approve -input=false 
+          terraform apply rollback.tfplan
       
-      # - name: create pull request
-      #   id: pullrequest
-      #   if: steps.approved-rollback.outcome == 'success'
-      #   run: |
-      #     rollback_time=$(date '+%Y-%m-%d-%H-%M-%S')
+      - name: create pull request
+        id: pullrequest
+        if: steps.approved-rollback.outcome == 'success'
+        run: |
+          rollback_time=$(date '+%Y-%m-%d-%H-%M-%S')
           
-      #     cd latest-code
-      #     gh release list | awk '{print $1}' | head -1 | xargs -t -I % sh -c '{ gh release download % --archive=zip ; unzip -q ${WORKING_CODE_REPO_WITHOUT_OWNER}-%.zip ; mv ${WORKING_CODE_REPO_WITHOUT_OWNER}-% ../intermediate-code ; rm ${WORKING_CODE_REPO_WITHOUT_OWNER}-%.zip ; }'
-      #     cd ..
+          cd latest-code
+          gh release list | awk '{print $1}' | head -1 | xargs -t -I % sh -c '{ gh release download % --archive=zip ; unzip -q ${WORKING_CODE_REPO_WITHOUT_OWNER}-%.zip ; mv ${WORKING_CODE_REPO_WITHOUT_OWNER}-% ../intermediate-code ; rm ${WORKING_CODE_REPO_WITHOUT_OWNER}-%.zip ; }'
+          cd ..
           
-      #     mkdir to-be-deleted
+          mkdir to-be-deleted
           
-      #     cp -ar ./latest-code/. ./to-be-deleted/
-      #     rm -rf latest-code
+          cp -ar ./latest-code/. ./to-be-deleted/
+          rm -rf latest-code
           
-      #     mkdir latest-code
+          mkdir latest-code
           
-      #     mv ./to-be-deleted/.git ./latest-code/
+          mv ./to-be-deleted/.git ./latest-code/
           
-      #     cp -ar ./intermediate-code/. ./latest-code/
+          cp -ar ./intermediate-code/. ./latest-code/
 
-      #     cd latest-code
-      #     ls -la
-      #     git config user.name github-actions
-      #     git config user.email github-actions@github.com
-      #     git remote show origin
-      #     git checkout -b rollback-at-$rollback_time
-      #     git branch
-      #     date > exact-rollback-time
-      #     git add .
-      #     git commit -m "rollback"
-      #     ls -la
-      #     git remote show origin
-      #     git push origin rollback-at-$rollback_time
-      #     gh pr create -B main -H rollback-at-$rollback_time --title "Merge rollback-at-$rollback_time into main" --body 'Created by Github action'
-      #   env:
-      #     GITHUB_TOKEN: ${{ secrets.PASSED_GITHUB_TOKEN }}
-      #     # GITHUB_TOKEN: ${{ github.token }}
+          cd latest-code
+          ls -la
+          git config user.name github-actions
+          git config user.email github-actions@github.com
+          git remote show origin
+          git checkout -b rollback-at-$rollback_time
+          git branch
+          date > exact-rollback-time
+          git add .
+          git commit -m "rollback"
+          ls -la
+          git remote show origin
+          git push origin rollback-at-$rollback_time
+          gh pr create -B main -H rollback-at-$rollback_time --title "Merge rollback-at-$rollback_time into main" --body 'Created by Github action'
+        env:
+          GITHUB_TOKEN: ${{ secrets.PASSED_GITHUB_TOKEN }}
+          # GITHUB_TOKEN: ${{ github.token }}
