@@ -278,7 +278,7 @@ jobs:
             GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Trigger deploy-dev-rollback.yml
-        if: steps.apply.outcome == 'failure' && steps.destroytf.outcome == 'failure'
+        if: steps.apply.outcome == 'failure'
         run: |
           git config user.name github-actions
           git config user.email github-actions@github.com
