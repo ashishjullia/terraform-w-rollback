@@ -79,6 +79,8 @@ jobs:
             });
             let fs = require('fs');
             fs.writeFileSync(`${process.env.GITHUB_WORKSPACE}/working-code.zip`, Buffer.from(download.data));
+        env:
+          GITHUB_TOKEN: ${{ secrets.PASSED_GITHUB_TOKEN }}
 
       - name: 'Unzip artifact'
         run: unzip working-code.zip -d working-code
