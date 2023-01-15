@@ -1,11 +1,11 @@
 name: Remove Artifacts
 
-# on:
-#   workflow_dispatch:
 on:
-  workflow_run:
-    workflows: [Prepare Deploy Dev Rollback]
-    types: [completed]
+  workflow_dispatch:
+# on:
+#   workflow_run:
+#     workflows: [Prepare Deploy Dev Rollback]
+#     types: [completed]
     
 env:
   WORKING_CODE_REPO: ${{ github.repository }}
