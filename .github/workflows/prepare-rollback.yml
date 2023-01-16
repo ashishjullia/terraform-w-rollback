@@ -57,7 +57,7 @@ jobs:
               -backend-config="region=$TF_STATE_BUCKET_REGION" \
               -backend-config="dynamodb_table=$TF_STATE_DYNAMODB_TABLE_NAME"
 
-          terraform plan -no-color -input=false -out=rollback.tfplan
+          terraform plan -no-color -input=false -out=rollback.tfplan >> $GITHUB_STEP_SUMMARY
   
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

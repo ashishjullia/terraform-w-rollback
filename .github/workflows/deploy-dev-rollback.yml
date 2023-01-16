@@ -60,7 +60,7 @@ jobs:
               -backend-config="dynamodb_table=$TF_STATE_DYNAMODB_TABLE_NAME"
 
           # terraform apply rollback.tfplan -auto-approve -input=false 
-          terraform apply rollback.tfplan
+          terraform apply rollback.tfplan >> $GITHUB_STEP_SUMMARY
       
       - name: Clone Code to 'latest-code' Directory with depth '0'
         id: latest-code
