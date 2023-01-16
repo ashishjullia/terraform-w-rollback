@@ -1,24 +1,7 @@
-# name: Deploy Dev Rollback
+name: Deploy Dev Rollback
 
 on:
   workflow_dispatch:
-# on: gh_workflow_run_id
-#   workflow_run:
-#     workflows: [Prepare Deploy Dev Rollback]
-#     types: [completed]
-# on:
-#   workflow_call:
-#     secrets:
-#       AWS_REGION:
-#         required: true
-#       AWS_ACCESS_KEY_ID:
-#         required: true
-#       AWS_SECRET_ACCESS_KEY:
-#         required: true
-      # PASSED_GITHUB_TOKEN:
-      #   required: true
-      # GH_WORKFLOW_RUN_ID:
-      #   required: true
 
 env:
   TF_STATE_BUCKET_NAME: "terraform-ashishjullia"
@@ -34,7 +17,6 @@ env:
 jobs:
   rollback:
     runs-on: ubuntu-latest
-    # if: ${{ github.event.workflow_run.conclusion == 'success' }}
     # environment:
     #   name: rollback
     steps:
@@ -57,27 +39,6 @@ jobs:
         run: |
           echo "$GITHUB_CONTEXT"
 
-      # - uses: actions/download-artifact@v3
-      #   with:
-      #     name: working-code
-      #     path: ./working-code
-      # - name: Download the Artifact
-      #   id: downloadartifacts
-      #   run: |
-      #     cd latest-code
-      #     git config user.name github-actions
-      #     git config user.email github-actions@github.com
-
-      #     gh run download ${{ github.run_id }} -n working-code
-      #     ls -la
-      #   env:
-      #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      # - uses: actions/download-artifact@v3
-      #   with:
-      #     name: working-code
-      #     path: ./working-code
-
       - name: "Download artifact"
         run: |
           RUN_ID=$(gh run --repo ${WORKING_CODE_REPO} list --workflow "${WF_NAME}" --json databaseId --jq .[0].databaseId)
@@ -86,53 +47,6 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      # - name: 'Download artifact'
-      #   uses: actions/github-script@v6
-      #   with:
-      #     script: |
-      #       console.log(context.runId)
-      #       console.log(context.repo)
-      #       let allArtifacts = await github.rest.actions.listWorkflowRunArtifacts({
-      #          owner: context.repo.owner,
-      #          repo: context.repo.repo,
-      #          run_id: context.runId,
-      #       });
-
-      #       console.log(allArtifacts)
-      #       let matchArtifact = allArtifacts.data.artifacts.filter((artifact) => {
-      #         return artifact.name == "working-code"
-      #       })[0];
-      #       let download = await github.rest.actions.downloadArtifact({
-      #          owner: context.repo.owner,
-      #          repo: context.repo.repo,
-      #          artifact_id: matchArtifact.id,
-      #          archive_format: 'zip',
-      #       });
-      #       let fs = require('fs');
-      #       fs.writeFileSync(`${process.env.GITHUB_WORKSPACE}/working-code.zip`, Buffer.from(download.data));
-        # env:
-        #   GITHUB_TOKEN: ${{ secrets.PASSED_GITHUB_TOKEN }}
-
-
-#--------------
-
-      # - name: 'Unzip artifact'
-      #   run: unzip working-code.zip -d working-code
-
-      # # - name: 'Comment on PR'
-      # #   uses: actions/github-script@v6
-      # #   with:
-      # #     github-token: ${{ secrets.GITHUB_TOKEN }}
-      # #     script: |
-      # #       let fs = require('fs');
-      # #       let issue_number = Number(fs.readFileSync('./pr_number'));
-      # #       await github.rest.issues.createComment({
-      # #         owner: context.repo.owner,
-      # #         repo: context.repo.repo,
-      # #         issue_number: issue_number,
-      # #         body: 'Thank you for the PR!'
-      # #       });
-#--------------------------
       - name: Approved Rollback 
         id: approved-rollback
         run: |
@@ -193,4 +107,3 @@ jobs:
           gh workflow run remove-artifacts.yml
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          # GITHUB_TOKEN: ${{ github.token }}

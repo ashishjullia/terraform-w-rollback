@@ -2,10 +2,6 @@ name: Remove Artifacts
 
 on:
   workflow_dispatch:
-# on:
-#   workflow_run:
-#     workflows: [Prepare Deploy Dev Rollback]
-#     types: [completed]
     
 env:
   WORKING_CODE_REPO: ${{ github.repository }}
@@ -13,7 +9,6 @@ env:
 jobs:
   remove-artifacts:
     runs-on: ubuntu-latest
-    # if: ${{ github.event.workflow_run.conclusion == 'success' }}
     steps:
       - uses: actions/checkout@v3      
       - name: Remove artifacts
