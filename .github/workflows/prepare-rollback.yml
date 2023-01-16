@@ -54,9 +54,11 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Remove .terraform* dir/files before uploading the artifact
+      - name: Remove .git and .terraform* dir/files before uploading the artifact
         id: removedotterraformdir
         run: |
+          # Added this
+          rm .git
           rm -rf ./working-code/.terraform
           rm ./working-code/.terraform.lock.hcl 
         

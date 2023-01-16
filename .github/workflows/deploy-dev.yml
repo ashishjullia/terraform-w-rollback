@@ -259,25 +259,22 @@ jobs:
           echo "destroy-outcome=1" >> $GITHUB_ENV
           terraform destroy -auto-approve
 
-      # - name: Capture working code
-      #   id: for-release
-      #   uses: actions/checkout@v3
-      #   with:
-      #     repository: ${{ env.WORKING_CODE_REPO }}
-      #     fetch-depth: '0'
-      #     ref: 'main'
-      #     path: for-release
+      - name: Capture working code
+        id: for-release
+        uses: actions/checkout@v3
+        with:
+          repository: ${{ env.WORKING_CODE_REPO }}
+          fetch-depth: '0'
+          ref: 'main'
+          path: for-release
 
       - name: If apply successful, create a release
         id: release
         if: steps.apply.outcome == 'success'
         run: |
-          # cd for-release
+          cd for-release
           git config user.name github-actions
           git config user.email github-actions@github.com
-          rm -rf .terraform
-          rm .terraform.lock.hcl 
-          rm -rf .git
           ls
           date '+%Y%m%d%H%M%S' | xargs -t -I % sh -c '{ git tag "release-%"; gh release create "release-%" --generate-notes --target main; }'
         env:
