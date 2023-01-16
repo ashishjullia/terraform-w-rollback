@@ -142,6 +142,14 @@ jobs:
         if: "steps.init.outcome == 'success' && github.event_name == 'pull_request'"
         run: terraform plan -no-color -input=false
         continue-on-error: true
+      
+      - name: Render terraform docs and push changes back to PR
+        uses: terraform-docs/gh-actions@main
+        with:
+          working-dir: .
+          output-file: README.md
+          output-method: inject
+          git-push: "true"
 
       # This will only run on a "Pull Request"
       - name: Update Pull Request
