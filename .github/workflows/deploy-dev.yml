@@ -98,6 +98,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
       - name: Setup AWS CLI for "gh actions" user
         id: ghactions
         uses: aws-actions/configure-aws-credentials@v1-node16
@@ -140,7 +142,9 @@ jobs:
       - name: Generate Terraform Plan
         id: plan
         if: "steps.init.outcome == 'success' && github.event_name == 'pull_request'"
-        run: terraform plan -no-color -input=false
+        run: |
+          terraform plan -no-color -input=false
+          rm .terraform.lock.hcl
         continue-on-error: true
       
       - name: Render terraform docs and push changes back to PR
@@ -186,7 +190,7 @@ jobs:
         if: steps.plan.outcome == 'failure'
         run: exit 1
 
-################################################################ deploy-to-dev ###############################################################################
+################################################################ deploy-to-dev ##############################################################################
 
   deploy-to-dev:
     needs: initialize-tf-backend-if-does-not-exists
