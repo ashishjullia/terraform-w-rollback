@@ -106,7 +106,7 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ secrets.AWS_REGION }}
 
-      - name: Get Terraform Version
+      - name: Get Terraform Version from .terraform-version file
         run: |
           echo "TF_VERSION=$(head -n 1 .terraform-version)" >> $GITHUB_ENV
 
@@ -116,7 +116,7 @@ jobs:
           terraform_version: $TF_VERSION
 
       # Check Terraform configuration files to a canonical format and style
-      - name: Check Terraform Format
+      - name: Check Terraform Code Format
         id: fmt
         run: terraform fmt -check
 
@@ -184,9 +184,6 @@ jobs:
     needs: initialize-tf-backend-if-does-not-exists
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     runs-on: ubuntu-latest
-    outputs:
-      apply-outcome: ${{ steps.setapplyoutcomevariable.outputs.apply-outcome }}
-      destroy-outcome: ${{ steps.destroytf.outputs.destroy-outcome }}
     steps:
       - uses: actions/checkout@v3
       - name: Setup AWS CLI for "gh actions" user
@@ -197,14 +194,14 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ secrets.AWS_REGION }}
 
-      - name: Capture working code
-        id: for-release
-        uses: actions/checkout@v3
-        with:
-          repository: ${{ env.WORKING_CODE_REPO }}
-          fetch-depth: '0'
-          ref: 'main'
-          path: for-release
+      # - name: Capture working code
+      #   id: for-release
+      #   uses: actions/checkout@v3
+      #   with:
+      #     repository: ${{ env.WORKING_CODE_REPO }}
+      #     fetch-depth: '0'
+      #     ref: 'main'
+      #     path: for-release
       
       - name: Get Terraform Version
         run: |
@@ -262,13 +259,26 @@ jobs:
           echo "destroy-outcome=1" >> $GITHUB_ENV
           terraform destroy -auto-approve
 
+      # - name: Capture working code
+      #   id: for-release
+      #   uses: actions/checkout@v3
+      #   with:
+      #     repository: ${{ env.WORKING_CODE_REPO }}
+      #     fetch-depth: '0'
+      #     ref: 'main'
+      #     path: for-release
+
       - name: If apply successful, create a release
         id: release
         if: steps.apply.outcome == 'success'
         run: |
-          cd for-release
-          ls
+          # cd for-release
+          git config user.name github-actions
+          git config user.email github-actions@github.com
+          rm -rf .terraform
+          rm .terraform.lock.hcl 
           rm -rf .git
+          ls
           date '+%Y%m%d%H%M%S' | xargs -t -I % sh -c '{ git tag "release-%"; gh release create "release-%" --generate-notes --target main; }'
         env:
             GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

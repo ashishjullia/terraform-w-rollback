@@ -17,8 +17,8 @@ env:
 jobs:
   rollback:
     runs-on: ubuntu-latest
-    # environment:
-    #   name: rollback
+    environment:
+      name: rollback
     steps:
       - name: Setup AWS CLI for "gh actions" user
         id: ghactions

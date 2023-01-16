@@ -15,10 +15,8 @@ env:
 jobs:
   prepare-rollback:
     runs-on: ubuntu-latest
-    # environment:
-    #   name: prepare-rollback
-    outputs:
-      prepare-rollback-outcome: ${{ steps.setpreparerollbackoutcomevariable.outputs.prepare-rollback-outcome }}
+    environment:
+      name: prepare-rollback
     steps:
       - uses: actions/checkout@v3
       - name: Setup AWS CLI for "gh actions" user
@@ -28,12 +26,6 @@ jobs:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ secrets.AWS_REGION }}
-
-      - name: Setup Git
-        # id: setupgit
-        run: |
-          git config --global user.name "GitHub Actions Bot"
-          git config --global user.email "<>" 
       
       - name: Clone Code to 'new' Directory
         uses: actions/checkout@v3
@@ -61,16 +53,9 @@ jobs:
   
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      
-      - name: Set prepare-rollback outcome variable
-        id: setpreparerollbackoutcomevariable
-        if: steps.prepare-intermediate-rollback.outcome == 'success'
-        run: |
-          echo "prepare-rollback-outcome=success" >> $GITHUB_OUTPUT
 
-      - name: Remove .terraform folder before upload artifact
+      - name: Remove .terraform* dir/files before uploading the artifact
         id: removedotterraformdir
-        if: steps.setpreparerollbackoutcomevariable.outcome == 'success'
         run: |
           rm -rf ./working-code/.terraform
           rm ./working-code/.terraform.lock.hcl 
