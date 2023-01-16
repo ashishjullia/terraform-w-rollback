@@ -87,8 +87,8 @@ jobs:
 
       - name: "Download artifact"
         run: |
-          RUN_ID=$(gh run --repo "${WORKING_CODE_REPO}" list --workflow ${WF_NAME} --json databaseId --jq .[0].databaseId)
-          gh run --repo "${WORKING_CODE_REPO}" download ${RUN_ID} -n ${ARTIFACT_NAME}
+          RUN_ID=$(gh run --repo ${WORKING_CODE_REPO} list --workflow "${WF_NAME}" --json databaseId --jq .[0].databaseId)
+          gh run --repo ${WORKING_CODE_REPO} download ${RUN_ID} -n ${ARTIFACT_NAME}
           ls -la
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
