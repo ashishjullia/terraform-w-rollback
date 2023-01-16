@@ -275,7 +275,7 @@ jobs:
           cd for-release
           git config user.name github-actions
           git config user.email github-actions@github.com
-          ls
+          ls -la
           date '+%Y%m%d%H%M%S' | xargs -t -I % sh -c '{ git tag "release-%"; gh release create "release-%" --generate-notes --target main; }'
         env:
             GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

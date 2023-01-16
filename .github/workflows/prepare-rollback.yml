@@ -58,7 +58,7 @@ jobs:
         id: removedotterraformdir
         run: |
           # Added this
-          rm .git
+          rm -rf .git
           rm -rf ./working-code/.terraform
           rm ./working-code/.terraform.lock.hcl 
         
