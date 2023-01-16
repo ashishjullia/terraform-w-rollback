@@ -142,7 +142,9 @@ jobs:
       - name: Generate Terraform Plan
         id: plan
         if: "steps.init.outcome == 'success' && github.event_name == 'pull_request'"
-        run: terraform plan -no-color -input=false
+        run: |
+          terraform plan -no-color -input=false
+          rm .terraform.lock.hcl
         continue-on-error: true
       
       - name: Render terraform docs and push changes back to PR
