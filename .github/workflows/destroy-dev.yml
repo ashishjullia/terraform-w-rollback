@@ -1,4 +1,4 @@
-name: destroy development
+name: Destroy Dev
 
 on:
   push:
