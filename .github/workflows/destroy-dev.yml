@@ -6,11 +6,11 @@ on:
       - 'destroy-dev-*'
 
 env:
-  TF_STATE_BUCKET_NAME: "terraform-ashishjullia"
+  TF_STATE_BUCKET_NAME: ${{ vars.TF_STATE_BUCKET_NAME }}
   TF_STATE_BUCKET_KEY: "${{ github.event.repository.name }}/terraform.tfstate"
-  TF_STATE_BUCKET_REGION: "us-east-1"
-  TF_STATE_DYNAMODB_TABLE_NAME: "tfstate-tf-test-s3-ashish"
-  TF_STATE_DYNAMODB_TABLE_REGION: "us-east-1"
+  TF_STATE_BUCKET_REGION: ${{ vars.AWS_REGION }}
+  TF_STATE_DYNAMODB_TABLE_NAME: ${{ vars.TF_STATE_DYNAMODB_TABLE_NAME }}
+  TF_STATE_DYNAMODB_TABLE_REGION: ${{ vars.AWS_REGION }}
 
 jobs:
   destroy:
