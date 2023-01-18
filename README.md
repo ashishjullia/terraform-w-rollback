@@ -162,6 +162,8 @@ git push
 
 After putting everything in place until `Step 2.2`, you can proceed with the following steps.
 
+### How to deploy?
+
 In order to work with this mechanism, make sure to follow the following `git` and `github`  workflow in the exact number of steps:
 
 > **Important**: Make sure not to merge more than 1 branches/PRs at the same time, 1 deployment at a time - to avoid worst case scenarios
