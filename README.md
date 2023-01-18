@@ -89,24 +89,29 @@ Before using the policy below, make sure to substitute `<bucket-name>` and `<dyn
 ```
 
 
-Official policy suggestion by the terraform (HashiCorp) on their website are:
+Official policy suggestion by the terraform (HashiCorp) on their website for the `S3 Backend` are:
 - [for S3 Bucket](https://developer.hashicorp.com/terraform/language/settings/backends/s3#s3-bucket-permissions "for s3 bucket")
 - [for DynamoDB Table](https://developer.hashicorp.com/terraform/language/settings/backends/s3#dynamodb-table-permissions "for DynamoDB Table")
 
-But as you can see that I've added more permissions to it because in the GitHub Actions we are checking under `deploy-dev.yml` inside the job `initialize-tf-backend-if-does-not-exists` that whether the backend already exists or not, if not create one and set it for the provide tf code.
+But as you can see that I've added more permissions to it because in the GitHub Actions we are checking inside `deploy-dev.yml` inside/under the job `initialize-tf-backend-if-does-not-exists` that whether the backend already exists or not, if not create one and set it for the provided terraform code.
 
 > **Note**: S3 bucket (or specifically the key/directory/folder) the DynamoDB table will not get deleted even after `terraform destroy` as that will be created by `aws cli` and not with the `terraform code`, so it will be out of context of terraform (this was intentional for this mechanism).
 
+> **Note:** Even if we want to deploy/create `S3 backend` this with terraform code, there will always a [chicken-egg problem mentioned here](https://mmatecki.medium.com/terraform-chicken-egg-problem-7504f8ddf2fc). 
+
 Apart from this^ policy whatever you perform/create `resources` in your AWS account, you have to add more permissions/policies to your the IAM user configured for the gh actions.
 
-#### Step 2: In order to use this mechanism with your tf code, make sure you have the following files before you start writing your `.tf` files (get these from this repository - feel free to clone)
+#### Step 2: In order to use this mechanism with your tf code, make sure you have the following files before you start writing your `.tf` files (get these from this repository - feel free to clone `git clone https://github.com/ashishjullia/terraform-w-separate-workflows.git`)
 
 ```bash
 ├── .auto.tfvars
 ├── .github
 │   └── workflows
+│       ├── deploy-dev-rollback.yml
 │       ├── deploy-dev.yml
-│       └── destroy-dev.yml
+│       ├── destroy-dev.yml
+│       ├── prepare-rollback.yml
+│       └── remove-artifacts.yml
 ├── .gitignore
 ├── .terraform-version
 ├── backend.tf
