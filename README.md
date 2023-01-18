@@ -7,7 +7,7 @@ So, in order to adapt terraform to my usual tasks I never found myself comfortab
 
 #### Step 1: Make sure to create an IAM User and attach the following policy to it
 
-Below is the minimum required permissions (IAM policy) for the IAM user configured for the `GH Actions User` in order to initialize/setup/create terraform s3 backend.
+Below is the minimum required permissions (IAM policy) for the IAM user configured for the `GitHub Actions User` in order to initialize/setup/create terraform s3 backend.
 
 ```json
 {
