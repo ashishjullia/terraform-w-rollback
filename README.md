@@ -101,7 +101,7 @@ But as you can see that I've added more permissions to it because in the GitHub 
 
 > **Note**: S3 bucket (or specifically the key/directory/folder) the DynamoDB table will not get deleted even after `terraform destroy` as that will be created by `aws cli` and not with the `terraform code`, so it will be out of context of terraform (this was intentional for this mechanism).
 
-> **Note:** Even if we want to deploy/create `S3 backend` this with terraform code, there will always a [chicken-egg problem mentioned here](https://mmatecki.medium.com/terraform-chicken-egg-problem-7504f8ddf2fc). 
+> **Note** Even if we want to deploy/create `S3 backend` this with terraform code, there will always a [chicken-egg problem mentioned here](https://mmatecki.medium.com/terraform-chicken-egg-problem-7504f8ddf2fc). 
 
 Apart from this^ policy whatever you perform/create `resources` in your AWS account, you have to add more permissions/policies to your the IAM user configured for the gh actions.
 
@@ -206,7 +206,7 @@ Step 8: Request^ is approved from `Step 7`^
 Step 9: As a result^, `./github/workflows/deploy-dev-rollback.yml` will get triggerd
 - An email will be sent and it will again wait for the approvers defined under `rollback` environment
 
-> Note: At this point we have to check the following.
+> **Note**: At this point we have to check the following.
 
 Step 9.1: Go to the workflow `./github/workflows/prepare-rollback.yml` run of `Step 8` and check the output of step `Setup Terraform Code For Rollback` or else you should see the following output - `No changes` under the `summary section`
 
@@ -214,7 +214,7 @@ Step 9.1: Go to the workflow `./github/workflows/prepare-rollback.yml` run of `S
 
 > Important: This `No changes` assure us that no changes will be made to deployed resourses.
 
-> Note: If you see `Change to be made` or `some other string` with modifications/deletions in this plan - make sure to review them thoroughly.
+> **Note**: If you see `Change to be made` or `some other string` with modifications/deletions in this plan - make sure to review them thoroughly.
 
 After reviewing these^, proceed with `approving`/`rejecting` the workflow.
 
@@ -243,7 +243,7 @@ Step 12: As a result^, this will trigger (again) `.github/workflows/deploy-dev.y
 - It will only run jobs `initialize-tf-backend-if-does-not-exists` and `deploy-to-dev`
 
 
-> Note: If this breaks at any point - contact admin/maintainers of this repo.
+> **Note**: If this breaks at any point - contact admin/maintainers of this repo.
 
 <!-- BEGIN_TF_DOCS -->
 ## Requirements
