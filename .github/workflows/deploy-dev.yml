@@ -9,11 +9,13 @@ on:
       - ".github/workflows/destroy-dev.yml"
       - ".github/workflows/deploy-dev-rollback.yml"
       - ".github/workflows/remove-artifacts.yml"
+      - "assets/*"
   pull_request:
     paths-ignore:
       - "README.md"
       - ".github/workflows/destroy-dev.yml"
       - ".github/workflows/remove-artifacts.yml"
+      - "assets/*"
 
 env:
   TF_STATE_BUCKET_NAME: "terraform-ashishjullia"
