@@ -253,6 +253,8 @@ Step 12: As a result^, this will trigger (again) `.github/workflows/deploy-dev.y
 
 > **Note**: If this breaks at any point - contact admin/maintainers of this repo.
 
+> Following section is auto-generated.
+
 <!-- BEGIN_TF_DOCS -->
 ## Requirements
 
