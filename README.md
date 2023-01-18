@@ -9,6 +9,8 @@ So, in order to adapt terraform to my usual tasks I never found myself comfortab
 
 Below is the minimum required permissions (IAM policy) for the IAM user configured for the `GitHub Actions User` in order to initialize/setup/create terraform s3 backend.
 
+Before using the policy below, make sure to substitute `<bucket-name>` and `<dynamodb-table-name>` as per your needs.
+
 ```json
 {
     "Version": "2012-10-17",
@@ -85,8 +87,6 @@ Below is the minimum required permissions (IAM policy) for the IAM user configur
 }
 
 ```
-
-Before using the policy above^, make sure to substitute `<bucket-name>` and `<dynamodb-table-name>` as per your needs.
 
 
 Official policy suggestion by the terraform (HashiCorp) on their website are:
