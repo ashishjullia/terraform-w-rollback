@@ -143,6 +143,12 @@ Also^, make sure to set/assign approvers for both of these environments (you can
 
 > **Note**: Make these two environments (with approvers) with the same names speicified as `prepare-rollback` and `rollback`. Because those are the strings specified in `./.github/workflows/prepare-rollback.yml` and `./.github/workflows/deploy-dev-rollback.yml`
 
+##### 2.3: Make sure you have following permissions set for Github Actions on targetted repo.
+
+![actions-permissions](./assets/actions-permissions.png)
+
+![workflow-permissions](./assets/workflow-permissions.png)
+
 ##### 2.3: Create a branch and then create a pull request from it on GitHub and push further changes to that PR (for every commit/push you'll see a new generated plan in the same PR on GitHub and also a newly generated `README.md` file)
 ##### 2.4: Populate the values for the variables specified in `./.auto.tfvars`
 For this, make sure that the variables are defined in `./variables.tf` and then their values should be populated under `./.auto.tfvars`
